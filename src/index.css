@@ -1,0 +1,146 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design system for Big-Machine Corporate App */
+
+@layer base {
+  :root {
+    /* Big-Machine Color Palette */
+    --corporate-primary: 358 65% 45%;        /* Big-Machine-1: #BD2A2E */
+    --corporate-dark: 30 3% 18%;             /* Big-Machine-2: #3B3936 */
+    --corporate-light: 184 8% 75%;           /* Big-Machine-3: #B2BEBF */
+    --corporate-medium: 178 9% 57%;          /* Big-Machine-4: #889C9B */
+    --corporate-accent: 175 19% 34%;         /* Big-Machine-5: #486966 */
+
+    /* Semantic Design Tokens */
+    --background: 0 0% 98%;
+    --foreground: 30 3% 18%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 30 3% 18%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 30 3% 18%;
+
+    --primary: 358 65% 45%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 184 8% 75%;
+    --secondary-foreground: 30 3% 18%;
+
+    --muted: 184 8% 88%;
+    --muted-foreground: 178 9% 45%;
+
+    --accent: 175 19% 34%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 184 8% 85%;
+    --input: 184 8% 88%;
+    --ring: 358 65% 45%;
+
+    --radius: 0.75rem;
+
+    /* Dashboard specific tokens */
+    --sidebar-background: 30 3% 18%;
+    --sidebar-foreground: 184 8% 75%;
+    --sidebar-accent: 175 19% 34%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-primary: 358 65% 45%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-border: 30 5% 25%;
+    --sidebar-ring: 358 65% 45%;
+
+    /* Corporate gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(358 65% 45%), hsl(358 65% 55%));
+    --gradient-sidebar: linear-gradient(180deg, hsl(30 3% 18%), hsl(30 5% 12%));
+    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(184 8% 95%));
+    
+    /* Shadows */
+    --shadow-corporate: 0 4px 20px -2px hsl(358 65% 45% / 0.15);
+    --shadow-card: 0 2px 10px -2px hsl(30 3% 18% / 0.08);
+    --shadow-sidebar: inset -1px 0 0 hsl(30 5% 25%);
+
+    /* Animations */
+    --transition-corporate: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-fast: all 0.15s ease;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-inter antialiased;
+  }
+}
+
+/* Corporate utility classes */
+@layer components {
+  .bg-gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .bg-gradient-sidebar {
+    background: var(--gradient-sidebar);
+  }
+  
+  .bg-gradient-card {
+    background: var(--gradient-card);
+  }
+  
+  .shadow-corporate {
+    box-shadow: var(--shadow-corporate);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .transition-corporate {
+    transition: var(--transition-corporate);
+  }
+}
