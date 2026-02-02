@@ -11,26 +11,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="h-screen flex w-full bg-background">
         <AppSidebar />
-        
-        <div className="flex-1 flex flex-col">
-          <header className="h-16 border-b bg-card shadow-card px-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <SidebarTrigger />
-              <h1 className="text-xl font-semibold text-foreground">Sistema de Gestión Corporativa</h1>
+
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          <header className="h-14 shrink-0 border-b bg-card shadow-card px-4 flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <SidebarTrigger className="shrink-0" />
+              <h1 className="text-lg font-semibold text-foreground truncate">Sistema de Gestión Corporativa</h1>
             </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="text-sm text-muted-foreground">
+
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="text-sm text-muted-foreground whitespace-nowrap">
                 Bienvenido, <span className="font-medium text-foreground">
                   {user ? `${user.nombres} ${user.apellidos}` : 'Usuario'}
                 </span>
               </div>
             </div>
           </header>
-          
-          <main className="flex-1 p-6 bg-muted/30">
+
+          <main className="flex-1 p-4 bg-muted/30 overflow-auto">
             {children}
           </main>
         </div>

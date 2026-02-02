@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -28,27 +28,45 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Search, Loader2 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Plus, Edit, Trash2, Search, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { usersService } from "@/services/usersService";
 import { rolesService } from "@/services/rolesService";
-import type { User, Role, UserCreate, UserUpdate } from "@/types/api";
+import { proveedoresService } from "@/services/proveedoresService";
+import { cn } from "@/lib/utils";
+import type { User, Role, UserCreate, UserUpdate, ProveedorDropdownItem } from "@/types/api";
 
 export default function Usuarios() {
   const [usuarios, setUsuarios] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [proveedores, setProveedores] = useState<ProveedorDropdownItem[]>([]);
   const [busqueda, setBusqueda] = useState("");
   const [modalAbierto, setModalAbierto] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [proveedorPopoverOpen, setProveedorPopoverOpen] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
     nombres: "",
     apellidos: "",
     password: "",
     rol_id: "",
-    estado: "true"
+    estado: "true",
+    id_proveedor: ""
   });
   const { toast } = useToast();
 
@@ -60,12 +78,18 @@ export default function Usuarios() {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [usersData, rolesData] = await Promise.all([
+      const [usersData, rolesData, proveedoresData] = await Promise.all([
         usersService.getUsers(0, 100, true),
-        rolesService.getRoles()
+        rolesService.getRoles(),
+        proveedoresService.getProveedoresDropdown()
       ]);
       setUsuarios(usersData);
       setRoles(rolesData);
+      // Ordenar proveedores alfabéticamente
+      const sortedProveedores = proveedoresData.sort((a, b) =>
+        a.nombre_completo.localeCompare(b.nombre_completo)
+      );
+      setProveedores(sortedProveedores);
     } catch (error) {
       toast({
         title: "Error",
@@ -96,7 +120,8 @@ export default function Usuarios() {
         apellidos: usuario.apellidos,
         password: "",
         rol_id: usuario.rol_id.toString(),
-        estado: usuario.estado.toString()
+        estado: usuario.estado.toString(),
+        id_proveedor: usuario.id_proveedor?.toString() || ""
       });
     } else {
       setUsuarioEditando(null);
@@ -106,7 +131,8 @@ export default function Usuarios() {
         apellidos: "",
         password: "",
         rol_id: "",
-        estado: "true"
+        estado: "true",
+        id_proveedor: ""
       });
     }
     setModalAbierto(true);
@@ -121,7 +147,8 @@ export default function Usuarios() {
       apellidos: "",
       password: "",
       rol_id: "",
-      estado: "true"
+      estado: "true",
+      id_proveedor: ""
     });
   };
 
@@ -162,12 +189,13 @@ export default function Usuarios() {
           nombres: formData.nombres,
           apellidos: formData.apellidos,
           rol_id: parseInt(formData.rol_id),
-          estado: formData.estado === "true"
+          estado: formData.estado === "true",
+          id_proveedor: formData.id_proveedor === "TODOS" ? null : (formData.id_proveedor ? parseInt(formData.id_proveedor) : null)
         };
-        
+
         const updated = await usersService.updateUser(usuarioEditando.id, updateData);
         setUsuarios(prev => prev.map(u => u.id === usuarioEditando.id ? updated : u));
-        
+
         toast({
           title: "Usuario actualizado",
           description: "Los datos del usuario se han actualizado correctamente",
@@ -179,12 +207,13 @@ export default function Usuarios() {
           password: formData.password,
           nombres: formData.nombres,
           apellidos: formData.apellidos,
-          rol_id: parseInt(formData.rol_id)
+          rol_id: parseInt(formData.rol_id),
+          id_proveedor: formData.id_proveedor === "TODOS" ? null : (formData.id_proveedor ? parseInt(formData.id_proveedor) : null)
         };
-        
+
         const newUser = await usersService.createUser(createData);
         setUsuarios(prev => [...prev, newUser]);
-        
+
         toast({
           title: "Usuario creado",
           description: "El nuevo usuario se ha creado correctamente",
@@ -206,7 +235,7 @@ export default function Usuarios() {
   const eliminarUsuario = async (id: number) => {
     try {
       await usersService.deleteUser(id);
-      setUsuarios(prev => prev.map(u => 
+      setUsuarios(prev => prev.map(u =>
         u.id === id ? { ...u, estado: false } : u
       ));
       toast({
@@ -267,7 +296,7 @@ export default function Usuarios() {
                   {usuarioEditando ? "Editar Usuario" : "Crear Nuevo Usuario"}
                 </DialogTitle>
                 <DialogDescription>
-                  {usuarioEditando 
+                  {usuarioEditando
                     ? "Modifica la información del usuario seleccionado"
                     : "Completa los datos para crear un nuevo usuario"
                   }
@@ -319,7 +348,7 @@ export default function Usuarios() {
                 )}
                 <div>
                   <Label htmlFor="rol">Rol</Label>
-                  <Select value={formData.rol_id} onValueChange={(value) => setFormData(prev => ({ ...prev, rol_id: value }))}>
+                  <Select value={formData.rol_id} onValueChange={(value) => setFormData(prev => ({ ...prev, rol_id: value, id_proveedor: "" }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecciona un rol" />
                     </SelectTrigger>
@@ -331,6 +360,72 @@ export default function Usuarios() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div>
+                  <Label htmlFor="proveedor">Proveedor</Label>
+                  <Popover open={proveedorPopoverOpen} onOpenChange={setProveedorPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={proveedorPopoverOpen}
+                        className="w-full justify-between font-normal"
+                      >
+                        {formData.id_proveedor === "TODOS"
+                          ? "Todos"
+                          : formData.id_proveedor
+                            ? proveedores.find(p => p.identificacion === formData.id_proveedor)?.nombre_completo || "Selecciona un proveedor"
+                            : "Selecciona un proveedor"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Buscar proveedor..." />
+                        <CommandList>
+                          <CommandEmpty>No se encontró proveedor.</CommandEmpty>
+                          <CommandGroup>
+                            {/* Opción TODOS solo visible si el rol es admin */}
+                            {formData.rol_id && roles.find(r => r.id_rol === parseInt(formData.rol_id))?.nombre_rol.toLowerCase().includes("admin") && (
+                              <CommandItem
+                                value="TODOS"
+                                onSelect={() => {
+                                  setFormData(prev => ({ ...prev, id_proveedor: "TODOS" }));
+                                  setProveedorPopoverOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.id_proveedor === "TODOS" ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                Todos
+                              </CommandItem>
+                            )}
+                            {proveedores.map((proveedor) => (
+                              <CommandItem
+                                key={proveedor.identificacion}
+                                value={proveedor.nombre_completo}
+                                onSelect={() => {
+                                  setFormData(prev => ({ ...prev, id_proveedor: proveedor.identificacion }));
+                                  setProveedorPopoverOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.id_proveedor === proveedor.identificacion ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {proveedor.nombre_completo}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div>
                   <Label htmlFor="estado">Estado</Label>

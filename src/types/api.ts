@@ -145,4 +145,106 @@ export interface VistaInventariosListResponse {
   limit: number;
 }
 
+// Sugerido de Compras
+export type StatusSugerido = "Created" | "Requested" | "Processed";
 
+export interface SugeridoCompras {
+  id: string;                          // UUID
+  empresa: string;
+  fecha: string | null;                // "YYYY-MM-DD"
+  num_doc: string | null;
+  proveedor: string | null;
+  grupo3: string | null;
+  grupo4: string | null;
+  grupo5: string | null;
+  cod_prod: string;
+  descripcion: string | null;
+  unidad_medida: string | null;
+  exist: number;                       // Existencia actual
+  exist_mc: number;                    // Existencia MC
+  cantidad_ventas_anterior: number;    // Ventas año anterior
+  cantidad_ventas_actual: number;      // Ventas año actual
+  sugerido_compras: number;            // Cantidad sugerida
+  cantidad_a_pedir: number;            // Editable por usuario
+  proveedor1: string | null;
+  proveedor2: string | null;
+  proveedor3: string | null;
+  proveedor4: string | null;
+  compras_en_el_periodo: number;
+  total_entradas_en_el_periodo: number;
+  ultima_fecha_compra: string | null;  // "YYYY-MM-DD"
+  ventas_en_el_periodo: number;
+  total_salidas_en_el_periodo: number;
+  ultima_fecha_venta: string | null;   // "YYYY-MM-DD"
+  saldo_actual: number;
+  val_unit: number;                    // Valor unitario
+  dcto: number;                        // Descuento
+  val_neto: number;                    // Valor neto
+  precio1: number;
+  util_1: number;                      // Utilidad % precio 1
+  precio2: number;
+  util_2: number;                      // Utilidad % precio 2
+  status: StatusSugerido;
+  created_at: string;                  // ISO datetime
+}
+
+export interface GenerarSugeridoRequest {
+  fecha_inicial: string;  // "YYYY-MM-DD" (requerido)
+  fecha_final: string;    // "YYYY-MM-DD" (requerido)
+  grupo3?: string;        // Opcional
+  grupo4?: string;        // Opcional
+  grupo5?: string;        // Opcional
+}
+
+export interface SugeridoComprasListResponse {
+  items: SugeridoCompras[];
+  total: number;
+}
+
+export interface SugeridoComprasCreate {
+  empresa: string;
+  cod_prod: string;
+  fecha?: string;
+  descripcion?: string;
+  status?: StatusSugerido;
+}
+
+export interface SugeridoComprasUpdate {
+  cantidad_a_pedir?: number;
+  status?: StatusSugerido;
+  [key: string]: unknown;
+}
+
+export interface UpdateStatusRequest {
+  status: StatusSugerido;
+}
+
+// Grupos para Sugerido de Compras
+export interface GruposResponse {
+  Grupo_Tres: string[];
+  Grupo_Cuatro: string[];
+  Grupo_Cinco: string[];
+}
+
+// Proveedor Dropdown
+export interface ProveedorDropdownItem {
+  identificacion: string;
+  nombre_completo: string;
+}
+
+// Permisos
+export interface FormularioPermiso {
+  id_formulario: number;
+  nombre_formulario: string;
+  descripcion: string;
+  ruta: string;
+  puede_leer: boolean;
+  puede_crear: boolean;
+  puede_editar: boolean;
+  puede_eliminar: boolean;
+}
+
+export interface PermisosResponse {
+  rol: string;
+  formularios: FormularioPermiso[];
+}
