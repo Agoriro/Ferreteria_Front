@@ -8,6 +8,7 @@ interface PermisosContextType {
     formularios: FormularioPermiso[];
     isLoading: boolean;
     error: string | null;
+    nombreRol: string | null;
     tieneAcceso: (nombreFormulario: string) => boolean;
     tieneAccesoRuta: (ruta: string) => boolean;
     puedeCrear: (nombreFormulario: string) => boolean;
@@ -23,6 +24,7 @@ export function PermisosProvider({ children }: { children: ReactNode }) {
     const [formularios, setFormularios] = useState<FormularioPermiso[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [nombreRol, setNombreRol] = useState<string | null>(null);
 
     const cargarPermisos = useCallback(async () => {
         if (!user || !isAuthenticated) {
@@ -36,14 +38,16 @@ export function PermisosProvider({ children }: { children: ReactNode }) {
         try {
             // Obtener el nombre del rol del usuario
             const rol = await rolesService.getRole(user.rol_id);
-            const nombreRol = rol.nombre_rol;
+            const rolName = rol.nombre_rol;
+            setNombreRol(rolName);
 
             // Obtener formularios permitidos para el rol
-            const response = await permisosService.getFormulariosPorRol(nombreRol);
+            const response = await permisosService.getFormulariosPorRol(rolName);
             setFormularios(response.formularios);
         } catch (err) {
             console.error('Error al cargar permisos:', err);
             setError(err instanceof Error ? err.message : 'Error al cargar permisos');
+            setNombreRol(null);
             setFormularios([]);
         } finally {
             setIsLoading(false);
@@ -101,6 +105,7 @@ export function PermisosProvider({ children }: { children: ReactNode }) {
                 formularios,
                 isLoading,
                 error,
+                nombreRol,
                 tieneAcceso,
                 tieneAccesoRuta,
                 puedeCrear,

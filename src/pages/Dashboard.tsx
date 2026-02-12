@@ -1,11 +1,11 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { 
-  Users, 
-  ShoppingCart, 
-  FileText, 
-  Download, 
+import {
+  Users,
+  ShoppingCart,
+  FileText,
+  Download,
   BarChart3,
   TrendingUp,
   Clock,
@@ -64,13 +64,6 @@ const quickActions = [
     color: "bg-corporate-accent"
   },
   {
-    title: "Diligenciar Requisiciones",
-    description: "Completar requisiciones pendientes de proveedores",
-    icon: FileText,
-    path: "/diligenciar",
-    color: "bg-corporate-medium"
-  },
-  {
     title: "Generar Reporte",
     description: "Crear reportes detallados del sistema",
     icon: BarChart3,
@@ -102,9 +95,8 @@ export default function Dashboard() {
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
                     <p className="text-3xl font-bold text-foreground mt-1">{stat.value}</p>
-                    <p className={`text-sm font-medium mt-1 ${
-                      stat.change.startsWith('+') ? 'text-green-600' : 'text-corporate-primary'
-                    }`}>
+                    <p className={`text-sm font-medium mt-1 ${stat.change.startsWith('+') ? 'text-green-600' : 'text-corporate-primary'
+                      }`}>
                       {stat.change} vs mes anterior
                     </p>
                   </div>
@@ -121,7 +113,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {quickActions.map((action) => (
             <Card key={action.title} className="bg-gradient-card shadow-card border-0 hover:shadow-lg transition-corporate cursor-pointer"
-                  onClick={() => navigate(action.path)}>
+              onClick={() => navigate(action.path)}>
               <CardHeader className="pb-4">
                 <div className={`p-3 rounded-lg ${action.color} w-fit mb-3`}>
                   <action.icon className="h-6 w-6 text-white" />
@@ -157,12 +149,11 @@ export default function Dashboard() {
                 { action: "Requisición completada", user: "Luis Pérez", time: "Hace 1 día", type: "complete" }
               ].map((activity, index) => (
                 <div key={index} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
-                  <div className={`p-2 rounded-full ${
-                    activity.type === 'create' ? 'bg-corporate-primary/10' :
+                  <div className={`p-2 rounded-full ${activity.type === 'create' ? 'bg-corporate-primary/10' :
                     activity.type === 'edit' ? 'bg-corporate-accent/10' :
-                    activity.type === 'report' ? 'bg-corporate-medium/10' :
-                    'bg-green-100'
-                  }`}>
+                      activity.type === 'report' ? 'bg-corporate-medium/10' :
+                        'bg-green-100'
+                    }`}>
                     {activity.type === 'create' && <ShoppingCart className="h-4 w-4 text-corporate-primary" />}
                     {activity.type === 'edit' && <Users className="h-4 w-4 text-corporate-accent" />}
                     {activity.type === 'report' && <BarChart3 className="h-4 w-4 text-corporate-medium" />}

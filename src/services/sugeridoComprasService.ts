@@ -8,6 +8,10 @@ import type {
   SugeridoComprasListResponse,
   SugeridoComprasUpdate,
   UpdateStatusRequest,
+  SugeridoProveedorItem,
+  SugeridoBulkUpdateResponse,
+  BulkExportResponse,
+  ReporteSugeridoResponse,
 } from "@/types/api";
 
 class SugeridoComprasService {
@@ -60,6 +64,73 @@ class SugeridoComprasService {
     if (!response.ok) {
       throw new Error(`Error al obtener sugeridos con status ${status}`);
     }
+    return response.json();
+  }
+
+  /**
+   * Obtiene sugeridos con status "Requested"
+   * @param identificacionTercero - Opcional: filtra por NIT del proveedor
+   */
+  async getRequested(identificacionTercero?: string): Promise<SugeridoComprasListResponse> {
+    const params = new URLSearchParams();
+    if (identificacionTercero) {
+      params.append("identificacion_tercero", identificacionTercero);
+    }
+    const queryString = params.toString();
+    const url = `${this.baseUrl}/requested${queryString ? "?" + queryString : ""}`;
+
+    const response = await fetchWithAuth(url);
+    if (!response.ok) {
+      throw new Error("Error al obtener sugeridos solicitados");
+    }
+    return response.json();
+  }
+
+  /**
+   * Obtiene sugeridos con status "Processed"
+   */
+  async getProcessed(): Promise<SugeridoComprasListResponse> {
+    const response = await fetchWithAuth(`${this.baseUrl}/processed`);
+    if (!response.ok) {
+      throw new Error("Error al obtener sugeridos procesados");
+    }
+    return response.json();
+  }
+
+  /**
+   * Actualiza múltiples sugeridos con datos del proveedor
+   * Cambia el status a "Processed"
+   */
+  async bulkUpdateProveedor(items: SugeridoProveedorItem[]): Promise<SugeridoBulkUpdateResponse> {
+    // Validación cliente antes de enviar
+    for (const item of items) {
+      if (item.cantidad_proveedor <= 0) {
+        throw new Error('cantidad_proveedor debe ser mayor a 0');
+      }
+      if (item.valor_unitario_proveedor <= 0) {
+        throw new Error('valor_unitario_proveedor debe ser mayor a 0');
+      }
+    }
+
+    const response = await fetchWithAuth(`${this.baseUrl}/bulk-update-proveedor`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ items }),
+    });
+
+    if (!response.ok) {
+      let errMsg = "Error al actualizar los registros";
+      try {
+        const error = await response.json();
+        if (error.detail) {
+          errMsg = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        }
+      } catch {
+        // ignore parse error
+      }
+      throw new Error(errMsg);
+    }
+
     return response.json();
   }
 
@@ -173,6 +244,79 @@ class SugeridoComprasService {
     if (!response.ok) {
       throw new Error(`Error al eliminar registros con status ${status}`);
     }
+    return response.json();
+  }
+
+  /**
+   * Exporta registros y genera órdenes de compra
+   * Actualiza el status a 'Exported' y retorna los JSONs de las OC
+   */
+  async bulkExport(ids: string[]): Promise<BulkExportResponse> {
+    if (ids.length === 0) {
+      throw new Error('Debe seleccionar al menos un registro para exportar');
+    }
+
+    const response = await fetchWithAuth(`${this.baseUrl}/bulk-export`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+
+    if (!response.ok) {
+      let errMsg = "Error al exportar los registros";
+      try {
+        const error = await response.json();
+        if (error.detail) {
+          errMsg = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        }
+      } catch {
+        // ignore parse error
+      }
+      throw new Error(errMsg);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Obtiene el reporte de sugerido de compras con filtros
+   * @param fechaInicial - Fecha inicio (YYYY-MM-DD, requerido)
+   * @param fechaFinal - Fecha fin (YYYY-MM-DD, requerido)
+   * @param identificacionTercero - NIT del proveedor (opcional)
+   * @param status - Estado del registro (opcional)
+   */
+  async getReporte(
+    fechaInicial: string,
+    fechaFinal: string,
+    identificacionTercero?: string,
+    status?: string
+  ): Promise<ReporteSugeridoResponse> {
+    const params = new URLSearchParams({
+      fecha_inicial: fechaInicial,
+      fecha_final: fechaFinal,
+    });
+    if (identificacionTercero) {
+      params.append("identificacion_tercero", identificacionTercero);
+    }
+    if (status) {
+      params.append("status", status);
+    }
+
+    const response = await fetchWithAuth(`${this.baseUrl}/reporte?${params}`);
+
+    if (!response.ok) {
+      let errMsg = "Error al obtener el reporte";
+      try {
+        const error = await response.json();
+        if (error.detail) {
+          errMsg = typeof error.detail === "string" ? error.detail : JSON.stringify(error.detail);
+        }
+      } catch {
+        // ignore parse error
+      }
+      throw new Error(errMsg);
+    }
+
     return response.json();
   }
 }

@@ -146,7 +146,7 @@ export interface VistaInventariosListResponse {
 }
 
 // Sugerido de Compras
-export type StatusSugerido = "Created" | "Requested" | "Processed";
+export type StatusSugerido = "Created" | "Requested" | "Processed" | "Exported";
 
 export interface SugeridoCompras {
   id: string;                          // UUID
@@ -184,6 +184,8 @@ export interface SugeridoCompras {
   util_1: number;                      // Utilidad % precio 1
   precio2: number;
   util_2: number;                      // Utilidad % precio 2
+  cantidad_proveedor: number | null;   // Cantidad confirmada por el proveedor
+  valor_unitario_proveedor: number | null; // Precio unitario del proveedor
   status: StatusSugerido;
   created_at: string;                  // ISO datetime
 }
@@ -219,6 +221,23 @@ export interface UpdateStatusRequest {
   status: StatusSugerido;
 }
 
+// Bulk Update Proveedor
+export interface SugeridoProveedorItem {
+  id: string;
+  cantidad_proveedor: number;
+  valor_unitario_proveedor: number;
+}
+
+export interface SugeridoBulkUpdateRequest {
+  items: SugeridoProveedorItem[];
+}
+
+export interface SugeridoBulkUpdateResponse {
+  message: string;
+  updated_count: number;
+  updated_ids: string[];
+}
+
 // Grupos para Sugerido de Compras
 export interface GruposResponse {
   Grupo_Tres: string[];
@@ -247,4 +266,105 @@ export interface FormularioPermiso {
 export interface PermisosResponse {
   rol: string;
   formularios: FormularioPermiso[];
+}
+
+// Bulk Export
+export interface BulkExportRequest {
+  ids: string[];
+}
+
+export interface OrdenCompraEncabezado {
+  empresa: string;
+  tipo_documento: string;
+  prefijo: string;
+  documento_numero: string;
+  fecha: string;
+  tercero_interno: string;
+  tercero_externo: string;
+  prefijo_dto_ext: string;
+  numero_dto_ext: number;
+  nota: string;
+  forma_pago: string;
+  verificado: number;
+  anulado: number;
+  fecha_emision: string;
+  personalizado_1: string;
+  personalizado_2: string;
+  personalizado_3: string;
+  personalizado_4: string;
+  personalizado_5: string;
+  personalizado_6: string;
+  personalizado_7: string;
+  personalizado_8: string;
+  personalizado_9: string;
+  personalizado_10: string;
+  personalizado_11: string;
+  personalizado_12: string;
+  personalizado_13: string;
+  personalizado_14: string;
+  personalizado_15: string;
+  importacion: string;
+  sucursal: string;
+  clasificacion: string;
+}
+
+export interface OrdenCompraDetalle {
+  producto: string;
+  bodega: string;
+  unidad_de_medida: string;
+  cantidad: number;
+  iva: number;
+  valor_unitario: number;
+  descuento: number;
+  vencimiento: string;
+  nota: string;
+  centro_costos: string;
+  codigo_centro_costos: string;
+  personalizado_1: string;
+  personalizado_2: string;
+  personalizado_3: string;
+  personalizado_4: string;
+  personalizado_5: string;
+  personalizado_6: string;
+  personalizado_7: string;
+  personalizado_8: string;
+  personalizado_9: string;
+  personalizado_10: string;
+  personalizado_11: string;
+  personalizado_12: string;
+  personalizado_13: string;
+  personalizado_14: string;
+  personalizado_15: string;
+}
+
+export interface OrdenCompra {
+  encabezado: OrdenCompraEncabezado;
+  detalles: OrdenCompraDetalle[];
+}
+
+export interface BulkExportResponse {
+  message: string;
+  updated_count: number;
+  updated_ids: string[];
+  ordenes_compra: OrdenCompra[];
+}
+
+// Reporte Sugerido de Compras
+export interface ReporteSugeridoItem {
+  empresa: string | null;
+  proveedor: string | null;
+  cod_prod: string | null;
+  descripcion: string | null;
+  unidad_medida: string | null;
+  cantidad_proveedor: number | null;
+  valor_unitario_proveedor: number | null;
+  tipo_doc_exp: string | null;
+  prefijo_exp: string | null;
+  num_doc_exp: string | null;
+  updated_at: string | null;
+}
+
+export interface ReporteSugeridoResponse {
+  items: ReporteSugeridoItem[];
+  total: number;
 }

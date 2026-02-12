@@ -69,11 +69,6 @@ const navigationItems = [
     icon: ShoppingCart,
   },
   {
-    title: "Diligenciar Requisiciones",
-    url: "/diligenciar",
-    icon: FileText,
-  },
-  {
     title: "Exportar Requisiciones",
     url: "/exportar",
     icon: Download,
