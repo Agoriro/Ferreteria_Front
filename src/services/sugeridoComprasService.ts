@@ -319,6 +319,59 @@ class SugeridoComprasService {
 
     return response.json();
   }
+
+  /**
+   * Rechaza un registro de sugerido de compras
+   * Cambia el status a 'Rejected'
+   * Solo funciona con registros en status 'Processed'
+   */
+  async reject(id: string): Promise<SugeridoCompras> {
+    const response = await fetchWithAuth(`${this.baseUrl}/${id}/reject`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      let errMsg = "Error al rechazar el registro";
+      try {
+        const error = await response.json();
+        if (error.detail) {
+          errMsg = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        }
+      } catch {
+        // ignore parse error
+      }
+      if (response.status === 404) errMsg = "Registro no encontrado";
+      throw new Error(errMsg);
+    }
+
+    return response.json();
+  }
+
+  /**
+   * Confirma todos los registros con status 'Created' → 'Requested'
+   */
+  async confirm(): Promise<{ message: string; updated_count: number }> {
+    const response = await fetchWithAuth(`${this.baseUrl}/confirm`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      let errMsg = "Error al confirmar los registros";
+      try {
+        const error = await response.json();
+        if (error.detail) {
+          errMsg = typeof error.detail === 'string' ? error.detail : JSON.stringify(error.detail);
+        }
+      } catch {
+        // ignore parse error
+      }
+      throw new Error(errMsg);
+    }
+
+    return response.json();
+  }
 }
 
 export const sugeridoComprasService = new SugeridoComprasService();

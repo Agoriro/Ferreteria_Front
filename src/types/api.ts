@@ -110,6 +110,8 @@ export interface DiasEntregaProveedorRecord {
   empresa: string;
   nit_proveedor: string;
   dias_entrega: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface DiasEntregaProveedorListResponse {
@@ -129,6 +131,16 @@ export interface DiasEntregaProveedorUpdate {
   empresa?: string;
   nit_proveedor?: string;
   dias_entrega?: number;
+}
+
+export interface ProveedorDiasEntregaOption {
+  nit_proveedor: string;
+  nombre_proveedor: string;
+}
+
+export interface ProveedorDiasEntregaListResponse {
+  items: ProveedorDiasEntregaOption[];
+  total: number;
 }
 
 // Vista Inventarios

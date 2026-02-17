@@ -39,6 +39,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
+import {
   Table,
   TableBody,
   TableCell,
@@ -46,10 +60,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash2, RefreshCcw, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, RefreshCcw, Loader2, Check, ChevronsUpDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { inventarioExcluidoService } from "@/services/inventarioExcluidoService";
-import { vistaInventariosService } from "@/services/vistaInventariosService";
 import type {
   InventarioExcluidoRecord,
   InventarioExcluidoCreate,
@@ -60,6 +73,8 @@ interface ProductoOption {
   codigo_producto: string;
   descripcion: string;
 }
+
+const EMPRESAS_DISPONIBLES = ["Cataño Ospina S.A.S.", "IMPERIO"];
 
 export default function InventarioExcluido() {
   const { toast } = useToast();
@@ -80,12 +95,11 @@ export default function InventarioExcluido() {
   );
 
   // Estados para los selectores en cascada
-  const [empresasDisponibles, setEmpresasDisponibles] = useState<string[]>([]);
   const [productosDisponibles, setProductosDisponibles] = useState<
     ProductoOption[]
   >([]);
-  const [loadingEmpresas, setLoadingEmpresas] = useState(false);
   const [loadingProductos, setLoadingProductos] = useState(false);
+  const [productoPopoverOpen, setProductoPopoverOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     codigo_producto: "",
@@ -120,22 +134,7 @@ export default function InventarioExcluido() {
     }
   };
 
-  // Cargar empresas disponibles
-  const loadEmpresas = async () => {
-    setLoadingEmpresas(true);
-    try {
-      const empresas = await vistaInventariosService.getEmpresas();
-      setEmpresasDisponibles(empresas);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar las empresas",
-        variant: "destructive",
-      });
-    } finally {
-      setLoadingEmpresas(false);
-    }
-  };
+
 
   // Cargar productos cuando cambie la empresa seleccionada
   const loadProductos = async (empresa: string) => {
@@ -145,6 +144,7 @@ export default function InventarioExcluido() {
     }
     setLoadingProductos(true);
     try {
+      const { vistaInventariosService } = await import("@/services/vistaInventariosService");
       const productos =
         await vistaInventariosService.getProductosPorEmpresa(empresa);
       setProductosDisponibles(productos);
@@ -180,10 +180,6 @@ export default function InventarioExcluido() {
   }, [items, busqueda]);
 
   const abrirModal = async (item?: InventarioExcluidoRecord) => {
-    // Cargar empresas si aún no se han cargado
-    if (empresasDisponibles.length === 0) {
-      await loadEmpresas();
-    }
 
     if (item) {
       setEditando(item);
@@ -381,30 +377,21 @@ export default function InventarioExcluido() {
                   {/* Selector de Empresa */}
                   <div>
                     <Label htmlFor="empresa">Empresa</Label>
-                    {loadingEmpresas ? (
-                      <div className="flex items-center gap-2 h-10 px-3 border rounded-md">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm text-muted-foreground">
-                          Cargando empresas...
-                        </span>
-                      </div>
-                    ) : (
-                      <Select
-                        value={formData.empresa}
-                        onValueChange={handleEmpresaChange}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona una empresa" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {empresasDisponibles.map((emp) => (
-                            <SelectItem key={emp} value={emp}>
-                              {emp}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
+                    <Select
+                      value={formData.empresa}
+                      onValueChange={handleEmpresaChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona una empresa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EMPRESAS_DISPONIBLES.map((emp) => (
+                          <SelectItem key={emp} value={emp}>
+                            {emp}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Selector de Producto */}
@@ -418,49 +405,63 @@ export default function InventarioExcluido() {
                         </span>
                       </div>
                     ) : (
-                      <Select
-                        value={formData.codigo_producto}
-                        onValueChange={(value) =>
-                          setFormData((p) => ({ ...p, codigo_producto: value }))
-                        }
-                        disabled={!formData.empresa || productosDisponibles.length === 0}
-                      >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              !formData.empresa
-                                ? "Primero selecciona una empresa"
-                                : productosDisponibles.length === 0
-                                  ? "No hay productos disponibles"
-                                  : "Selecciona un producto"
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {productosDisponibles.map((prod) => (
-                            <SelectItem
-                              key={prod.codigo_producto}
-                              value={prod.codigo_producto}
-                            >
-                              <div className="flex flex-col">
-                                <span className="font-medium">
-                                  {prod.codigo_producto}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {prod.descripcion}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    {formData.codigo_producto && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {productosDisponibles.find(
-                          (p) => p.codigo_producto === formData.codigo_producto
-                        )?.descripcion || ""}
-                      </p>
+                      <Popover open={productoPopoverOpen} onOpenChange={setProductoPopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={productoPopoverOpen}
+                            className="w-full justify-between font-normal"
+                            disabled={!formData.empresa || productosDisponibles.length === 0}
+                          >
+                            {!formData.empresa
+                              ? "Primero selecciona una empresa"
+                              : productosDisponibles.length === 0
+                                ? "No hay productos disponibles"
+                                : formData.codigo_producto
+                                  ? `${formData.codigo_producto} - ${productosDisponibles.find(p => p.codigo_producto === formData.codigo_producto)?.descripcion || ""}`
+                                  : "Buscar producto..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar por código o descripción..." />
+                            <CommandList>
+                              <CommandEmpty>No se encontró producto.</CommandEmpty>
+                              <CommandGroup>
+                                {productosDisponibles.map((prod) => (
+                                  <CommandItem
+                                    key={prod.codigo_producto}
+                                    value={`${prod.codigo_producto} ${prod.descripcion}`}
+                                    onSelect={() => {
+                                      setFormData((p) => ({ ...p, codigo_producto: prod.codigo_producto }));
+                                      setProductoPopoverOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4 shrink-0",
+                                        formData.codigo_producto === prod.codigo_producto
+                                          ? "opacity-100"
+                                          : "opacity-0"
+                                      )}
+                                    />
+                                    <div className="grid grid-cols-[auto_1fr] gap-3 items-center min-w-0">
+                                      <span className="font-mono font-medium text-sm whitespace-nowrap">
+                                        {prod.codigo_producto}
+                                      </span>
+                                      <span className="text-sm text-muted-foreground truncate">
+                                        {prod.descripcion}
+                                      </span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     )}
                   </div>
 

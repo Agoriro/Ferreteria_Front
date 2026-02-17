@@ -45,7 +45,7 @@ export default function Requisiciones() {
   const [sugeridosRequested, setSugeridosRequested] = useState<SugeridoCompras[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Provider filter state (for ADMIN/USER only)
+  // Provider filter state (for ADMIN/COMPRAS only)
   const [proveedores, setProveedores] = useState<ProveedorDropdownItem[]>([]);
   const [selectedProveedor, setSelectedProveedor] = useState<string>("");
   const [proveedorPopoverOpen, setProveedorPopoverOpen] = useState(false);
@@ -61,10 +61,10 @@ export default function Requisiciones() {
   // Ref for table element (for image export)
   const tableRef = useRef<HTMLDivElement>(null);
 
-  // Determine if user is ADMIN or USER (not MANAGER)
-  const isAdminOrUser = nombreRol && !nombreRol.toUpperCase().includes("MANAGER");
+  // Determine if user is ADMIN or COMPRAS (not PROVEEDOR)
+  const isAdminOrUser = nombreRol && !nombreRol.toUpperCase().includes("PROVEEDOR");
 
-  // Load providers list (for ADMIN/USER for filter, for MANAGER to get their provider name)
+  // Load providers list (for ADMIN/COMPRAS for filter, for PROVEEDOR to get their provider name)
   const loadProveedores = useCallback(async () => {
     setLoadingProveedores(true);
     try {
@@ -90,11 +90,11 @@ export default function Requisiciones() {
       const rolUpperCase = nombreRol.toUpperCase();
       let data;
 
-      if (rolUpperCase === "MANAGER" || rolUpperCase.includes("MANAGER")) {
-        // MANAGER: get all requested items (backend should filter by provider NIT)
+      if (rolUpperCase === "PROVEEDOR" || rolUpperCase.includes("PROVEEDOR")) {
+        // PROVEEDOR: get all requested items (backend should filter by provider NIT)
         data = await sugeridoComprasService.getByStatus("Requested");
       } else {
-        // ADMIN/USER: get all requested items
+        // ADMIN/COMPRAS: get all requested items
         data = await sugeridoComprasService.getByStatus("Requested");
       }
 
@@ -124,9 +124,9 @@ export default function Requisiciones() {
     }
   }, [nombreRol, loadData]);
 
-  // Filter items client-side based on selected provider or MANAGER's provider
+  // Filter items client-side based on selected provider or PROVEEDOR's provider
   const filteredItems = useMemo(() => {
-    // For MANAGER: auto-filter by their provider (using id_proveedor to find provider name)
+    // For PROVEEDOR: auto-filter by their provider (using id_proveedor to find provider name)
     if (!isAdminOrUser && user?.id_proveedor && proveedores.length > 0) {
       // Find provider name by NIT (id_proveedor)
       const managerProveedorNit = user.id_proveedor.toString();
@@ -141,7 +141,7 @@ export default function Requisiciones() {
       }
     }
 
-    // For ADMIN/USER with selected filter
+    // For ADMIN/COMPRAS with selected filter
     if (selectedProveedor && isAdminOrUser) {
       const selectedProveedorData = proveedores.find(p => p.identificacion === selectedProveedor);
       if (!selectedProveedorData) {
@@ -280,7 +280,7 @@ export default function Requisiciones() {
           "#": index + 1,
         };
 
-        // Add Proveedor column only for ADMIN/USER
+        // Add Proveedor column only for ADMIN/COMPRAS
         if (isAdminOrUser) {
           baseData["Proveedor"] = item.proveedor || item.proveedor1 || "-";
         }
@@ -373,7 +373,7 @@ export default function Requisiciones() {
           </p>
         </div>
 
-        {/* Filter Card - Only for ADMIN/USER */}
+        {/* Filter Card - Only for ADMIN/COMPRAS */}
         {isAdminOrUser && (
           <Card className="bg-gradient-card shadow-card border-0">
             <CardHeader className="pb-3">

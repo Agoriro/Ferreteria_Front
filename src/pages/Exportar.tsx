@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -12,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Download, FileSpreadsheet, Package, Loader2, RefreshCcw, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Download, FileSpreadsheet, Package, Loader2, RefreshCcw, ArrowUpDown, ArrowUp, ArrowDown, XCircle, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { sugeridoComprasService } from "@/services/sugeridoComprasService";
 import type { SugeridoCompras } from "@/types/api";
@@ -28,6 +29,8 @@ export default function Exportar() {
   const [error, setError] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [filtroProveedor, setFiltroProveedor] = useState("");
   const { toast } = useToast();
 
   // Cargar datos del endpoint
@@ -219,7 +222,7 @@ export default function Exportar() {
     }
   };
 
-  // Obtener datos ordenados
+  // Obtener datos ordenados y filtrados
   const sugeridosOrdenados = [...sugeridos].sort((a, b) => {
     if (!sortField || !sortDirection) return 0;
 
@@ -231,6 +234,13 @@ export default function Exportar() {
     return 0;
   });
 
+  // Aplicar filtro por proveedor
+  const sugeridosFiltrados = filtroProveedor
+    ? sugeridosOrdenados.filter(s =>
+      (s.proveedor || "").toLowerCase().includes(filtroProveedor.toLowerCase())
+    )
+    : sugeridosOrdenados;
+
   // Icono de ordenamiento
   const getSortIcon = (field: SortField) => {
     if (sortField !== field) return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
@@ -238,10 +248,34 @@ export default function Exportar() {
     if (sortDirection === "desc") return <ArrowDown className="h-4 w-4 ml-1" />;
     return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
   };
+  const rechazarRegistro = async (id: string) => {
+    setRejectingId(id);
+    try {
+      await sugeridoComprasService.reject(id);
+      toast({
+        title: "Registro rechazado",
+        description: "El registro fue rechazado exitosamente",
+      });
+      // Quitar de seleccionados si estaba seleccionado
+      setSeleccionados(prev => prev.filter(itemId => itemId !== id));
+      // Recargar datos
+      await cargarDatos();
+    } catch (err) {
+      const mensaje = err instanceof Error ? err.message : "Error al rechazar el registro";
+      toast({
+        title: "Error",
+        description: mensaje,
+        variant: "destructive",
+      });
+    } finally {
+      setRejectingId(null);
+    }
+  };
+
   const calcularTotalSeleccionados = () => {
     return sugeridos
       .filter(s => seleccionados.includes(s.id))
-      .reduce((total, s) => total + ((s.cantidad_proveedor || 0) * (s.valor_unitario_proveedor || 0)), 0);
+      .reduce((total, s) => total + (Number(s.cantidad_proveedor || 0) * Number(s.valor_unitario_proveedor || 0)), 0);
   };
 
   const formatearMoneda = (valor: number | null | undefined) => {
@@ -337,22 +371,33 @@ export default function Exportar() {
 
         {/* Lista de Registros */}
         <Card className="bg-gradient-card shadow-card border-0">
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-row items-center justify-between gap-4">
             <div>
               <CardTitle className="text-lg">Registros Procesados</CardTitle>
               <CardDescription>
                 Registros listos para exportar (status: Processed)
               </CardDescription>
             </div>
-            {sugeridos.length > 0 && (
-              <Button
-                variant="corporate-outline"
-                onClick={toggleTodos}
-                size="sm"
-              >
-                {todosSeleccionados ? "Deseleccionar Todos" : "Seleccionar Todos"}
-              </Button>
-            )}
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Filtrar por proveedor..."
+                  value={filtroProveedor}
+                  onChange={(e) => setFiltroProveedor(e.target.value)}
+                  className="pl-9 w-64"
+                />
+              </div>
+              {sugeridos.length > 0 && (
+                <Button
+                  variant="corporate-outline"
+                  onClick={toggleTodos}
+                  size="sm"
+                >
+                  {todosSeleccionados ? "Deseleccionar Todos" : "Seleccionar Todos"}
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -410,13 +455,17 @@ export default function Exportar() {
                       <TableHead>Descripción</TableHead>
                       <TableHead>Unidad</TableHead>
                       <TableHead className="text-right">Cantidad</TableHead>
-                      <TableHead className="text-right">Valor Unitario</TableHead>
+                      <TableHead className="text-right">Val. Unitario</TableHead>
+                      <TableHead className="text-right">Precio 1</TableHead>
+                      <TableHead className="text-right">Precio 2</TableHead>
+                      <TableHead className="text-right">Valor Unit. Prov.</TableHead>
                       <TableHead className="text-right">Total</TableHead>
+                      <TableHead className="text-center">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sugeridosOrdenados.map((item) => {
-                      const total = (item.cantidad_proveedor || 0) * (item.valor_unitario_proveedor || 0);
+                    {sugeridosFiltrados.map((item) => {
+                      const total = Number(item.cantidad_proveedor || 0) * Number(item.valor_unitario_proveedor || 0);
                       return (
                         <TableRow key={item.id}>
                           <TableCell>
@@ -440,10 +489,35 @@ export default function Exportar() {
                             {item.cantidad_proveedor?.toLocaleString() || "0"}
                           </TableCell>
                           <TableCell className="text-right">
+                            {formatearMoneda(item.val_unit)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatearMoneda(item.precio1)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {formatearMoneda(item.precio2)}
+                          </TableCell>
+                          <TableCell className="text-right">
                             {formatearMoneda(item.valor_unitario_proveedor)}
                           </TableCell>
                           <TableCell className="text-right font-medium">
                             {formatearMoneda(total)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => rechazarRegistro(item.id)}
+                              disabled={rejectingId === item.id || isLoading}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              title="Rechazar registro"
+                            >
+                              {rejectingId === item.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <XCircle className="h-4 w-4" />
+                              )}
+                            </Button>
                           </TableCell>
                         </TableRow>
                       );
@@ -476,7 +550,7 @@ export default function Exportar() {
                   <p className="text-2xl font-bold text-corporate-accent">
                     {sugeridos
                       .filter(s => seleccionados.includes(s.id))
-                      .reduce((total, s) => total + (s.cantidad_proveedor || 0), 0)
+                      .reduce((total, s) => total + Number(s.cantidad_proveedor || 0), 0)
                       .toLocaleString()}
                   </p>
                   <p className="text-sm text-muted-foreground">Unidades totales</p>

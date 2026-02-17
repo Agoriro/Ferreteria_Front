@@ -84,6 +84,10 @@ import {
   Eye,
   ChevronsUpDown,
   Check,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  SendHorizonal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -116,10 +120,24 @@ export default function SugeridoCompras() {
   const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState<StatusSugerido | "all">("all");
   const [busqueda, setBusqueda] = useState("");
+
+  // Sort states
+  const [sortField, setSortField] = useState<"proveedor" | "cod_prod" | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = (field: "proveedor" | "cod_prod") => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
 
   // Modal states
   const [modalGenerarAbierto, setModalGenerarAbierto] = useState(false);
@@ -205,20 +223,31 @@ export default function SugeridoCompras() {
     setSkip(0);
   }, [statusFilter]);
 
-  // Filter items by search
+  // Filter and sort items
   const itemsFiltrados = useMemo(() => {
     const q = busqueda.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(
-      (it) =>
-        it.cod_prod.toLowerCase().includes(q) ||
-        it.descripcion?.toLowerCase().includes(q) ||
-        it.proveedor?.toLowerCase().includes(q) ||
-        it.grupo3?.toLowerCase().includes(q) ||
-        it.grupo4?.toLowerCase().includes(q) ||
-        it.grupo5?.toLowerCase().includes(q)
-    );
-  }, [items, busqueda]);
+    let filtered = items;
+    if (q) {
+      filtered = items.filter(
+        (it) =>
+          it.cod_prod.toLowerCase().includes(q) ||
+          it.descripcion?.toLowerCase().includes(q) ||
+          it.proveedor?.toLowerCase().includes(q) ||
+          it.grupo3?.toLowerCase().includes(q) ||
+          it.grupo4?.toLowerCase().includes(q) ||
+          it.grupo5?.toLowerCase().includes(q)
+      );
+    }
+    if (sortField) {
+      filtered = [...filtered].sort((a, b) => {
+        const valA = (sortField === "proveedor" ? (a.proveedor || a.proveedor1 || "") : a.cod_prod).toLowerCase();
+        const valB = (sortField === "proveedor" ? (b.proveedor || b.proveedor1 || "") : b.cod_prod).toLowerCase();
+        const cmp = valA.localeCompare(valB);
+        return sortDirection === "asc" ? cmp : -cmp;
+      });
+    }
+    return filtered;
+  }, [items, busqueda, sortField, sortDirection]);
 
   // Generate suggested purchases
   const handleGenerar = async () => {
@@ -393,6 +422,28 @@ export default function SugeridoCompras() {
     return new Intl.NumberFormat("es-CO").format(value);
   };
 
+  // Confirmar todos los registros Created → Requested
+  const handleConfirm = async () => {
+    setIsConfirming(true);
+    try {
+      const result = await sugeridoComprasService.confirm();
+      toast({
+        title: "Registros confirmados",
+        description: result.message,
+      });
+      setSkip(0);
+      await loadData();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "No se pudieron confirmar los registros",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
   if (isLoading && items.length === 0) {
     return (
       <DashboardLayout>
@@ -534,13 +585,45 @@ export default function SugeridoCompras() {
 
         {/* Table */}
         <Card className="bg-gradient-card shadow-card border-0">
-          <CardHeader>
-            <CardTitle className="text-lg">
-              Registros ({itemsFiltrados.length})
-            </CardTitle>
-            <CardDescription>
-              Mostrando página {currentPage} de {totalPages} (total: {total})
-            </CardDescription>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">
+                Registros ({itemsFiltrados.length})
+              </CardTitle>
+              <CardDescription>
+                Mostrando página {currentPage} de {totalPages} (total: {total})
+              </CardDescription>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="corporate"
+                  size="sm"
+                  disabled={isConfirming || isLoading}
+                >
+                  {isConfirming ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <SendHorizonal className="h-4 w-4 mr-2" />
+                  )}
+                  Procesar Todos
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Se van a procesar todos los registros con estado "Creado" y pasarán a estado "Solicitado". Esta acción no se puede deshacer.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleConfirm}>
+                    Aceptar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -549,8 +632,26 @@ export default function SugeridoCompras() {
                   <TableRow>
                     <TableHead className="w-[50px] text-center">#</TableHead>
                     <TableHead>Empresa</TableHead>
-                    <TableHead className="w-[120px]">Proveedor</TableHead>
-                    <TableHead>Código</TableHead>
+                    <TableHead className="w-[120px] cursor-pointer select-none" onClick={() => toggleSort("proveedor")}>
+                      <span className="flex items-center gap-1 hover:text-foreground transition-colors">
+                        Proveedor
+                        {sortField === "proveedor" ? (
+                          sortDirection === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 opacity-40" />
+                        )}
+                      </span>
+                    </TableHead>
+                    <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("cod_prod")}>
+                      <span className="flex items-center gap-1 hover:text-foreground transition-colors">
+                        Código
+                        {sortField === "cod_prod" ? (
+                          sortDirection === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 opacity-40" />
+                        )}
+                      </span>
+                    </TableHead>
                     <TableHead className="w-[150px]">Descripción</TableHead>
                     <TableHead>U.M.</TableHead>
                     <TableHead className="text-right">Exist.</TableHead>

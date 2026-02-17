@@ -5,6 +5,7 @@ import type {
   DiasEntregaProveedorListResponse,
   DiasEntregaProveedorRecord,
   DiasEntregaProveedorUpdate,
+  ProveedorDiasEntregaListResponse,
 } from "@/types/api";
 
 class DiasEntregaProveedorService {
@@ -114,6 +115,27 @@ class DiasEntregaProveedorService {
     if (!response.ok) {
       if (response.status === 404) throw new Error("Registro no encontrado");
       throw new Error("Error al eliminar el registro");
+    }
+
+    return response.json();
+  }
+
+  async getProveedoresPorEmpresa(
+    empresa: string,
+    search?: string,
+    limit = 50
+  ): Promise<ProveedorDiasEntregaListResponse> {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    if (search) {
+      params.append("search", search);
+    }
+
+    const response = await fetchWithAuth(
+      `${API_BASE_URL}/dias-entrega-proveedor/options/proveedores/${encodeURIComponent(empresa)}?${params}`
+    );
+
+    if (!response.ok) {
+      throw new Error("Error al obtener proveedores");
     }
 
     return response.json();

@@ -30,6 +30,26 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
   Table,
   TableBody,
   TableCell,
@@ -37,14 +57,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, Edit, Trash2, RefreshCcw, Loader2, Search } from "lucide-react";
+import { Plus, Edit, Trash2, RefreshCcw, Loader2, Search, Check, ChevronsUpDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { diasEntregaProveedorService } from "@/services/diasEntregaProveedorService";
+import { cn } from "@/lib/utils";
 import type {
   DiasEntregaProveedorRecord,
   DiasEntregaProveedorCreate,
   DiasEntregaProveedorUpdate,
+  ProveedorDiasEntregaOption,
 } from "@/types/api";
+
+const EMPRESAS_DISPONIBLES = ["Cataño Ospina S.A.S.", "IMPERIO"];
 
 export default function DiasEntregaProveedor() {
   const { toast } = useToast();
@@ -63,6 +87,9 @@ export default function DiasEntregaProveedor() {
   const [editando, setEditando] = useState<DiasEntregaProveedorRecord | null>(
     null
   );
+  const [proveedores, setProveedores] = useState<ProveedorDiasEntregaOption[]>([]);
+  const [proveedorPopoverOpen, setProveedorPopoverOpen] = useState(false);
+  const [loadingProveedores, setLoadingProveedores] = useState(false);
 
   const [formData, setFormData] = useState({
     empresa: "",
@@ -98,6 +125,23 @@ export default function DiasEntregaProveedor() {
     }
   };
 
+  // Cargar proveedores por empresa para el combobox
+  const loadProveedores = async (empresa: string) => {
+    if (!empresa) {
+      setProveedores([]);
+      return;
+    }
+    setLoadingProveedores(true);
+    try {
+      const data = await diasEntregaProveedorService.getProveedoresPorEmpresa(empresa);
+      setProveedores(data.items);
+    } catch {
+      setProveedores([]);
+    } finally {
+      setLoadingProveedores(false);
+    }
+  };
+
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,7 +163,7 @@ export default function DiasEntregaProveedor() {
     );
   }, [items, busqueda]);
 
-  const abrirModal = (item?: DiasEntregaProveedorRecord) => {
+  const abrirModal = async (item?: DiasEntregaProveedorRecord) => {
     if (item) {
       setEditando(item);
       setFormData({
@@ -127,9 +171,11 @@ export default function DiasEntregaProveedor() {
         nit_proveedor: item.nit_proveedor,
         dias_entrega: item.dias_entrega,
       });
+      await loadProveedores(item.empresa);
     } else {
       setEditando(null);
       setFormData({ empresa: "", nit_proveedor: "", dias_entrega: 0 });
+      setProveedores([]);
     }
     setModalAbierto(true);
   };
@@ -138,6 +184,7 @@ export default function DiasEntregaProveedor() {
     setModalAbierto(false);
     setEditando(null);
     setFormData({ empresa: "", nit_proveedor: "", dias_entrega: 0 });
+    setProveedores([]);
   };
 
   const guardar = async () => {
@@ -148,15 +195,7 @@ export default function DiasEntregaProveedor() {
     if (!empresa) {
       toast({
         title: "Error",
-        description: "La empresa es requerida",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (empresa.length > 100) {
-      toast({
-        title: "Error",
-        description: "La empresa no puede exceder 100 caracteres",
+        description: "Debe seleccionar una empresa",
         variant: "destructive",
       });
       return;
@@ -164,15 +203,7 @@ export default function DiasEntregaProveedor() {
     if (!nit) {
       toast({
         title: "Error",
-        description: "El NIT del proveedor es requerido",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (nit.length > 200) {
-      toast({
-        title: "Error",
-        description: "El NIT del proveedor no puede exceder 200 caracteres",
+        description: "Debe seleccionar un proveedor",
         variant: "destructive",
       });
       return;
@@ -308,29 +339,92 @@ export default function DiasEntregaProveedor() {
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="empresa">Empresa</Label>
-                    <Input
-                      id="empresa"
+                    <Select
                       value={formData.empresa}
-                      onChange={(e) =>
-                        setFormData((p) => ({ ...p, empresa: e.target.value }))
-                      }
-                      placeholder="Ej: Ferreteria Central"
-                    />
+                      onValueChange={async (value) => {
+                        setFormData((p) => ({ ...p, empresa: value, nit_proveedor: "" }));
+                        await loadProveedores(value);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona una empresa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EMPRESAS_DISPONIBLES.map((emp) => (
+                          <SelectItem key={emp} value={emp}>
+                            {emp}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div>
-                    <Label htmlFor="nit_proveedor">NIT del Proveedor</Label>
-                    <Input
-                      id="nit_proveedor"
-                      value={formData.nit_proveedor}
-                      onChange={(e) =>
-                        setFormData((p) => ({
-                          ...p,
-                          nit_proveedor: e.target.value,
-                        }))
-                      }
-                      placeholder="Ej: 900123456-1"
-                    />
+                    <Label htmlFor="nit_proveedor">Proveedor</Label>
+                    {loadingProveedores ? (
+                      <div className="flex items-center gap-2 h-10 px-3 border rounded-md">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm text-muted-foreground">
+                          Cargando proveedores...
+                        </span>
+                      </div>
+                    ) : (
+                      <Popover open={proveedorPopoverOpen} onOpenChange={setProveedorPopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={proveedorPopoverOpen}
+                            className="w-full justify-between font-normal"
+                            disabled={!formData.empresa || proveedores.length === 0}
+                          >
+                            {!formData.empresa
+                              ? "Primero selecciona una empresa"
+                              : proveedores.length === 0
+                                ? "No hay proveedores disponibles"
+                                : formData.nit_proveedor
+                                  ? proveedores.find(p => p.nit_proveedor === formData.nit_proveedor)?.nombre_proveedor || formData.nit_proveedor
+                                  : "Selecciona un proveedor"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[400px] p-0" align="start">
+                          <Command>
+                            <CommandInput placeholder="Buscar proveedor..." />
+                            <CommandList>
+                              <CommandEmpty>No se encontró proveedor.</CommandEmpty>
+                              <CommandGroup>
+                                {proveedores.map((prov) => (
+                                  <CommandItem
+                                    key={prov.nit_proveedor}
+                                    value={`${prov.nit_proveedor} ${prov.nombre_proveedor}`}
+                                    onSelect={() => {
+                                      setFormData((p) => ({ ...p, nit_proveedor: prov.nit_proveedor }));
+                                      setProveedorPopoverOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        formData.nit_proveedor === prov.nit_proveedor ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    <div className="grid grid-cols-[auto_1fr] gap-3 items-center min-w-0">
+                                      <span className="font-mono font-medium text-sm whitespace-nowrap">
+                                        {prov.nit_proveedor}
+                                      </span>
+                                      <span className="text-sm text-muted-foreground truncate">
+                                        {prov.nombre_proveedor}
+                                      </span>
+                                    </div>
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    )}
                   </div>
 
                   <div>
